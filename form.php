@@ -164,6 +164,8 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
         <?php if (!$is_edit): ?>
         <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 2px dashed #e2e8f0;">
             <p>Уже есть логин и пароль? <a href="login.php" style="color: #38a169; font-weight: 600; text-decoration: none;">Войти в личный кабинет</a></p>
+             <p style="margin-top: 15px; font-size: 0.8rem;">
+                <a href="admin.php" style="color: #a0aec0; text-decoration: none;">Панель администратора</a>
         </div>
         <?php endif; ?>
     </div>
