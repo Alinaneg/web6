@@ -5,23 +5,31 @@ $errors = [];
 $form_data = [];
 $success_message = '';
 
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        die('Ошибка CSRF: недействительный токен');
+    }
+}
+
 if (isset($_COOKIE['saved_data']) && empty($_POST)) {
     $form_data = json_decode($_COOKIE['saved_data'], true);
+    if (!is_array($form_data)) {
+        $form_data = [];
+    }
 }
 
 if (isset($_COOKIE['form_errors'])) {
     $errors = json_decode($_COOKIE['form_errors'], true);
-    setcookie('form_errors', '', time() - 3600);
+    setcookie('form_errors', '', time() - 3600, '/', '', false, true);
 }
 
 if (isset($_COOKIE['form_data'])) {
     $form_data = json_decode($_COOKIE['form_data'], true);
-    setcookie('form_data', '', time() - 3600);
+    setcookie('form_data', '', time() - 3600, '/', '', false, true);
 }
 
-
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
+    // Валидация входных данных
     $fullNameError = validateFullName($_POST['fullName'] ?? '');
     if ($fullNameError) $errors['fullName'] = $fullNameError;
     
@@ -58,8 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     ];
     
     if (!empty($errors)) {
-        setcookie('form_errors', json_encode($errors), 0);
-        setcookie('form_data', json_encode($form_data), 0);
+        setcookie('form_errors', json_encode($errors), 0, '/', '', false, true);
+        setcookie('form_data', json_encode($form_data), 0, '/', '', false, true);
         header('Location: index.php');
         exit();
     }
@@ -68,33 +76,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $credentials = generateCredentials();
         saveUserToDB($db, $form_data, $credentials, $_POST['langs'] ?? []);
         
-        setcookie('saved_data', json_encode($form_data), time() + COOKIE_EXPIRE);
+        setcookie('saved_data', json_encode($form_data), time() + COOKIE_EXPIRE, '/', '', false, true);
         
         header('Location: index.php?save=1&login=' . urlencode($credentials['login']) . 
                '&password=' . urlencode($credentials['password']));
         exit();
         
     } catch (Exception $e) {
-        $errors['database'] = 'Ошибка при сохранении в БД';
-        setcookie('form_errors', json_encode(['database' => 'Ошибка базы данных']), 0);
+        error_log("Form submission error: " . $e->getMessage());
+        $errors['database'] = 'Ошибка при сохранении данных. Пожалуйста, попробуйте позже.';
+        setcookie('form_errors', json_encode(['database' => 'Ошибка базы данных']), 0, '/', '', false, true);
         header('Location: index.php');
         exit();
     }
 }
 
-
 if (isset($_GET['save']) && $_GET['save'] == 1) {
     if (isset($_GET['login']) && isset($_GET['password'])) {
-        $login = htmlspecialchars($_GET['login']);
-        $password = htmlspecialchars($_GET['password']);
-        $success_message = "✅ Данные успешно сохранены!
+        $login = h($_GET['login']);
+        $password = h($_GET['password']);
+        $success_message = " Данные успешно сохранены!
                            <div class='login-info'>
-                               <strong>🔑 Логин:</strong> $login<br>
-                               <strong>🔐 Пароль:</strong> $password<br>
+                               <strong> Логин:</strong> " . h($login) . "<br>
+                               <strong> Пароль:</strong> " . h($password) . "<br>
                                <small>Сохраните эти данные для входа в личный кабинет</small>
                            </div>";
     } else {
-        $success_message = '✅ Данные успешно сохранены!';
+        $success_message = 'Данные успешно сохранены!';
     }
 }
 
