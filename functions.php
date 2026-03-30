@@ -10,11 +10,13 @@ function getDbConnection() {
                 DB_PASS,
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_PERSISTENT => true
+                    PDO::ATTR_PERSISTENT => true,
+                    PDO::ATTR_EMULATE_PREPARES => false // Защита от SQL инъекций
                 ]
             );
         } catch (PDOException $e) {
-            die("Ошибка подключения к БД: " . $e->getMessage());
+            error_log("DB Connection Error: " . $e->getMessage());
+            die("Ошибка подключения к базе данных. Пожалуйста, попробуйте позже.");
         }
     }
     
@@ -27,19 +29,28 @@ function getAllLanguages($db = null) {
     static $languages = null;
     
     if ($languages === null) {
-        $stmt = $db->query("SELECT id, name FROM programming_languages ORDER BY name");
-        $languages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $db->query("SELECT id, name FROM programming_languages ORDER BY name");
+            $languages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching languages: " . $e->getMessage());
+            $languages = [];
+        }
     }
     
     return $languages;
 }
 
 function getUserLanguages($db, $user_id) {
-    $stmt = $db->prepare("SELECT language_id FROM application_languages WHERE application_id = ?");
-    $stmt->execute([$user_id]);
-    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    try {
+        $stmt = $db->prepare("SELECT language_id FROM application_languages WHERE application_id = ?");
+        $stmt->execute([$user_id]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        error_log("Error fetching user languages: " . $e->getMessage());
+        return [];
+    }
 }
-
 
 function validateFullName($fullName) {
     $fullName = trim($fullName);
@@ -56,7 +67,7 @@ function validateFullName($fullName) {
         return 'ФИО может содержать только буквы, пробелы и дефис';
     }
     
-    return null; 
+    return null;
 }
 
 function validateEmail($email) {
@@ -93,13 +104,12 @@ function validateBirthDate($birth) {
     }
     
     $date_parts = explode('-', $birth);
-    if (!checkdate($date_parts[1], $date_parts[2], $date_parts[0])) {
+    if (!checkdate((int)$date_parts[1], (int)$date_parts[2], (int)$date_parts[0])) {
         return 'Введите корректную дату рождения';
     }
     
     return null;
 }
-
 
 function validateGender($gender) {
     if (!in_array($gender, ['male', 'female'])) {
@@ -149,7 +159,6 @@ function generateCredentials() {
     ];
 }
 
-
 function saveUserToDB($db, $data, $credentials, $selected_langs) {
     try {
         $db->beginTransaction();
@@ -193,10 +202,10 @@ function saveUserToDB($db, $data, $credentials, $selected_langs) {
         
     } catch (Exception $e) {
         $db->rollBack();
-        throw $e;
+        error_log("Error saving user: " . $e->getMessage());
+        throw new Exception("Ошибка при сохранении данных");
     }
 }
-
 
 function updateUserInDB($db, $user_id, $data, $selected_langs) {
     try {
@@ -231,38 +240,51 @@ function updateUserInDB($db, $user_id, $data, $selected_langs) {
         
     } catch (Exception $e) {
         $db->rollBack();
-        throw $e;
+        error_log("Error updating user: " . $e->getMessage());
+        throw new Exception("Ошибка при обновлении данных");
     }
 }
 
-
 function getLanguageStats($db) {
-    $stmt = $db->query("
-        SELECT 
-            pl.name,
-            COUNT(al.application_id) as count
-        FROM programming_languages pl
-        LEFT JOIN application_languages al ON pl.id = al.language_id
-        GROUP BY pl.id
-        ORDER BY count DESC, pl.name
-    ");
-    
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $db->query("
+            SELECT 
+                pl.name,
+                COUNT(al.application_id) as count
+            FROM programming_languages pl
+            LEFT JOIN application_languages al ON pl.id = al.language_id
+            GROUP BY pl.id
+            ORDER BY count DESC, pl.name
+        ");
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error getting language stats: " . $e->getMessage());
+        return [];
+    }
 }
 
-
 function getAllUsersWithLanguages($db) {
-    $stmt = $db->query("
-        SELECT 
-            a.*,
-            GROUP_CONCAT(pl.name SEPARATOR ', ') as languages
-        FROM applications a
-        LEFT JOIN application_languages al ON a.id = al.application_id
-        LEFT JOIN programming_languages pl ON al.language_id = pl.id
-        GROUP BY a.id
-        ORDER BY a.id DESC
-    ");
-    
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $db->query("
+            SELECT 
+                a.*,
+                GROUP_CONCAT(pl.name SEPARATOR ', ') as languages
+            FROM applications a
+            LEFT JOIN application_languages al ON a.id = al.application_id
+            LEFT JOIN programming_languages pl ON al.language_id = pl.id
+            GROUP BY a.id
+            ORDER BY a.id DESC
+        ");
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error fetching users: " . $e->getMessage());
+        return [];
+    }
+}
+
+function h($string) {
+    return htmlspecialchars($string ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 ?>
