@@ -32,24 +32,24 @@ $stats = getLanguageStats($db);
 <body>
     <div class="admin-container">
         <div class="header">
-            <h1 class="form-title" style="margin-bottom: 0;"> Админ-панель</h1>
+            <h1 class="form-title" style="margin-bottom: 0;">👑 Админ-панель</h1>
             <a href="#" onclick="window.location.reload()" class="logout-btn">Обновить</a>
         </div>
         
         <?php if (isset($_GET['deleted'])): ?>
-            <div class="message success" style="display: block;">✅ Пользователь удалён</div>
+            <div class="message success" style="display: block;"> Пользователь удалён</div>
         <?php endif; ?>
         
         <?php if (isset($_GET['updated'])): ?>
-            <div class="message success" style="display: block;">✅ Данные обновлены</div>
+            <div class="message success" style="display: block;"> Данные обновлены</div>
         <?php endif; ?>
         
-        <h2> Статистика по языкам</h2>
+        <h2>Статистика по языкам</h2>
         <div class="stats-grid">
             <?php foreach ($stats as $stat): ?>
                 <div class="stat-card">
-                    <h3><?= $stat['count'] ?></h3>
-                    <p><?= htmlspecialchars($stat['name']) ?></p>
+                    <h3><?= h($stat['count']) ?></h3>
+                    <p><?= h($stat['name']) ?></p>
                 </div>
             <?php endforeach; ?>
             
@@ -77,17 +77,17 @@ $stats = getLanguageStats($db);
             <tbody>
                 <?php foreach ($users as $user): ?>
                 <tr>
-                    <td>#<?= $user['id'] ?></td>
-                    <td><?= htmlspecialchars($user['full_name']) ?></td>
-                    <td><?= htmlspecialchars($user['email']) ?></td>
-                    <td><?= htmlspecialchars($user['phone'] ?? '-') ?></td>
-                    <td><?= htmlspecialchars($user['birth_date'] ?? '-') ?></td>
+                    <td>#<?= h($user['id']) ?></td>
+                    <td><?= h($user['full_name']) ?></td>
+                    <td><?= h($user['email']) ?></td>
+                    <td><?= h($user['phone'] ?? '-') ?></td>
+                    <td><?= h($user['birth_date'] ?? '-') ?></td>
                     <td><?= $user['gender'] == 'male' ? 'Мужской' : 'Женский' ?></td>
-                    <td><?= htmlspecialchars($user['languages'] ?? '-') ?></td>
-                    <td><?= htmlspecialchars($user['login'] ?? '-') ?></td>
+                    <td><?= h($user['languages'] ?? '-') ?></td>
+                    <td><?= h($user['login'] ?? '-') ?></td>
                     <td>
-                        <a href="admin-edit.php?id=<?= $user['id'] ?>" class="action-btn edit-btn"> Редактировать </a>
-                        <a href="admin-delete.php?id=<?= $user['id'] ?>" class="action-btn delete-btn" onclick="return confirm('Удалить пользователя?')"> Удалить </a>
+                        <a href="admin-edit.php?id=<?= urlencode($user['id']) ?>" class="action-btn edit-btn"> Ред.</a>
+                        <a href="admin-delete.php?id=<?= urlencode($user['id']) ?>" class="action-btn delete-btn" onclick="return confirm('Удалить пользователя?')"> Уд.</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
