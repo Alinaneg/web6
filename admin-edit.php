@@ -2,15 +2,27 @@
 require_once 'init.php';
 requireAdminAuth();
 
-$user_id = $_GET['id'] ?? 0;
+$user_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$user_id) {
     header('Location: admin.php');
     exit();
 }
 
-$stmt = $db->prepare("SELECT * FROM applications WHERE id = ?");
-$stmt->execute([$user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        die('Ошибка CSRF: недействительный токен');
+    }
+}
+
+try {
+    $stmt = $db->prepare("SELECT * FROM applications WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Error fetching user: " . $e->getMessage());
+    header('Location: admin.php');
+    exit();
+}
 
 if (!$user) {
     header('Location: admin.php');
@@ -56,7 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             header('Location: admin.php?updated=1');
             exit();
         } catch (Exception $e) {
-            $errors['database'] = 'Ошибка при обновлении';
+            error_log("Admin edit error: " . $e->getMessage());
+            $errors['database'] = 'Ошибка при обновлении данных';
         }
     }
 }
@@ -76,27 +89,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="form-card">
         <a href="admin.php" class="admin-link">← Вернуться в админ-панель</a>
-        <h1 class="form-title">✏️ Редактирование пользователя #<?= $user_id ?></h1>
+        <h1 class="form-title"> Редактирование пользователя #<?= h($user_id) ?></h1>
         
         <form method="POST" action="">
+            <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
+            
             <div class="form-row">
                 <div class="form-group">
                     <label for="fullName">ФИО *</label>
                     <input type="text" id="fullName" name="fullName" required
-                           value="<?= htmlspecialchars($_POST['fullName'] ?? $user['full_name']) ?>"
+                           value="<?= h($_POST['fullName'] ?? $user['full_name']) ?>"
                            class="<?= isset($errors['fullName']) ? 'error-field' : '' ?>">
                     <?php if (isset($errors['fullName'])): ?>
-                        <small class="error-hint">❌ <?= $errors['fullName'] ?></small>
+                        <small class="error-hint">❌ <?= h($errors['fullName']) ?></small>
                     <?php endif; ?>
                 </div>
                 
                 <div class="form-group">
                     <label for="email">Email *</label>
                     <input type="email" id="email" name="email" required
-                           value="<?= htmlspecialchars($_POST['email'] ?? $user['email']) ?>"
+                           value="<?= h($_POST['email'] ?? $user['email']) ?>"
                            class="<?= isset($errors['email']) ? 'error-field' : '' ?>">
                     <?php if (isset($errors['email'])): ?>
-                        <small class="error-hint">❌ <?= $errors['email'] ?></small>
+                        <small class="error-hint">❌ <?= h($errors['email']) ?></small>
                     <?php endif; ?>
                 </div>
             </div>
@@ -105,13 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="form-group">
                     <label for="phone">Телефон</label>
                     <input type="tel" id="phone" name="phone"
-                           value="<?= htmlspecialchars($_POST['phone'] ?? $user['phone'] ?? '') ?>">
+                           value="<?= h($_POST['phone'] ?? $user['phone'] ?? '') ?>">
                 </div>
                 
                 <div class="form-group">
                     <label for="birth">Дата рождения</label>
                     <input type="date" id="birth" name="birth"
-                           value="<?= htmlspecialchars($_POST['birth'] ?? $user['birth_date'] ?? '') ?>">
+                           value="<?= h($_POST['birth'] ?? $user['birth_date'] ?? '') ?>">
                 </div>
             </div>
             
@@ -139,18 +154,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $selected = $_POST['langs'] ?? $user_langs;
                     foreach ($all_languages as $lang): 
                     ?>
-                        <option value="<?= $lang['id'] ?>" 
+                        <option value="<?= h($lang['id']) ?>" 
                             <?= in_array($lang['id'], $selected) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($lang['name']) ?>
+                            <?= h($lang['name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <small class="hint">Зажмите Ctrl/Cmd для выбора нескольких</small>
+                <?php if (isset($errors['langs'])): ?>
+                    <small class="error-hint">❌ <?= h($errors['langs']) ?></small>
+                <?php endif; ?>
             </div>
             
             <div class="form-group">
                 <label for="bio">Биография</label>
-                <textarea id="bio" name="bio" rows="3"><?= htmlspecialchars($_POST['bio'] ?? $user['bio'] ?? '') ?></textarea>
+                <textarea id="bio" name="bio" rows="3"><?= h($_POST['bio'] ?? $user['bio'] ?? '') ?></textarea>
             </div>
             
             <button type="submit" class="btn-submit">Сохранить изменения</button>
