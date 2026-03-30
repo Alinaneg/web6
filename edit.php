@@ -6,13 +6,26 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        die('Ошибка CSRF: недействительный токен');
+    }
+}
+
+$user_id = (int)$_SESSION['user_id'];
 $errors = [];
 $success_message = '';
 
-$stmt = $db->prepare("SELECT * FROM applications WHERE id = ?");
-$stmt->execute([$user_id]);
-$user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    $stmt = $db->prepare("SELECT * FROM applications WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Error fetching user data: " . $e->getMessage());
+    session_destroy();
+    header('Location: login.php');
+    exit();
+}
 
 if (!$user_data) {
     session_destroy();
@@ -23,7 +36,7 @@ if (!$user_data) {
 $user_langs = getUserLanguages($db, $user_id);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
+    // Валидация входных данных
     $fullNameError = validateFullName($_POST['fullName'] ?? '');
     if ($fullNameError) $errors['fullName'] = $fullNameError;
     
@@ -55,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             updateUserInDB($db, $user_id, $form_data, $_POST['langs'] ?? []);
             $success_message = '✅ Данные успешно обновлены!';
+            
             $user_data['full_name'] = $form_data['fullName'];
             $user_data['email'] = $form_data['email'];
             $user_data['phone'] = $form_data['phone'];
@@ -64,7 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user_langs = $_POST['langs'] ?? [];
             
         } catch (Exception $e) {
-            $errors['database'] = 'Ошибка при обновлении';
+            error_log("Error updating user: " . $e->getMessage());
+            $errors['database'] = 'Ошибка при обновлении данных. Пожалуйста, попробуйте позже.';
         }
     }
 }
