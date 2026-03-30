@@ -9,25 +9,36 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        die('Ошибка CSRF: недействительный токен');
+    }
+    
     $login = trim($_POST['login'] ?? '');
     $password = $_POST['password'] ?? '';
     
     if (empty($login) || empty($password)) {
         $error = 'Введите логин и пароль';
     } else {
-        $stmt = $db->prepare("SELECT * FROM applications WHERE login = ?");
-        $stmt->execute([$login]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($user && password_verify($password, $user['password_hash'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_login'] = $user['login'];
-            $_SESSION['user_name'] = $user['full_name'];
+        try {
+            $stmt = $db->prepare("SELECT * FROM applications WHERE login = ?");
+            $stmt->execute([$login]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            header('Location: edit.php');
-            exit();
-        } else {
-            $error = 'Неверный логин или пароль';
+            if ($user && password_verify($password, $user['password_hash'])) {
+                session_regenerate_id(true);
+                
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_login'] = $user['login'];
+                $_SESSION['user_name'] = $user['full_name'];
+                
+                header('Location: edit.php');
+                exit();
+            } else {
+                $error = 'Неверный логин или пароль';
+            }
+        } catch (PDOException $e) {
+            error_log("Login error: " . $e->getMessage());
+            $error = 'Ошибка при входе. Пожалуйста, попробуйте позже.';
         }
     }
 }
@@ -52,15 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         <?php if ($error): ?>
             <div class="message error" style="display: block; margin-bottom: 20px;">
-                ❌ <?= htmlspecialchars($error) ?>
+                ❌ <?= h($error) ?>
             </div>
         <?php endif; ?>
         
         <form method="POST" action="">
+            <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
+            
             <div class="form-group">
                 <label for="login">Логин</label>
                 <input type="text" id="login" name="login" required 
-                       value="<?= htmlspecialchars($_POST['login'] ?? '') ?>"
+                       value="<?= h($_POST['login'] ?? '') ?>"
                        placeholder="Введите логин">
             </div>
             
