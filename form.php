@@ -9,7 +9,7 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $is_edit ? 'Редактирование' : 'Анкета' ?></title>
+    <title><?= h($is_edit ? 'Редактирование' : 'Анкета') ?></title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,17 +26,20 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
     <?php endif; ?>
     
     <div class="form-card">
-        <h1 class="form-title"><?= $title_prefix ?></h1>
+        <h1 class="form-title"><?= h($title_prefix) ?></h1>
         
-        <form method="POST" action="<?= $action_url ?>" novalidate>
+        <form method="POST" action="<?= h($action_url) ?>" novalidate>
+            <!-- CSRF токен -->
+            <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
+            
             <div class="form-row">
                 <div class="form-group">
                     <label for="fullName">ФИО *</label>
                     <input type="text" id="fullName" name="fullName" required
-                           value="<?= htmlspecialchars($form_data['fullName'] ?? $user_data['full_name'] ?? '') ?>"
+                           value="<?= h($form_data['fullName'] ?? $user_data['full_name'] ?? '') ?>"
                            class="<?= isset($errors['fullName']) ? 'error-field' : '' ?>">
                     <?php if (isset($errors['fullName'])): ?>
-                        <small class="error-hint">❌ <?= $errors['fullName'] ?></small>
+                        <small class="error-hint">❌ <?= h($errors['fullName']) ?></small>
                     <?php else: ?>
                         <small class="hint">Допустимы: буквы, пробелы, дефис</small>
                     <?php endif; ?>
@@ -45,10 +48,10 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
                 <div class="form-group">
                     <label for="email">Email *</label>
                     <input type="email" id="email" name="email" required
-                           value="<?= htmlspecialchars($form_data['email'] ?? $user_data['email'] ?? '') ?>"
+                           value="<?= h($form_data['email'] ?? $user_data['email'] ?? '') ?>"
                            class="<?= isset($errors['email']) ? 'error-field' : '' ?>">
                     <?php if (isset($errors['email'])): ?>
-                        <small class="error-hint">❌ <?= $errors['email'] ?></small>
+                        <small class="error-hint">❌ <?= h($errors['email']) ?></small>
                     <?php else: ?>
                         <small class="hint">Формат: name@domain.com</small>
                     <?php endif; ?>
@@ -59,10 +62,10 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
                 <div class="form-group">
                     <label for="phone">Телефон</label>
                     <input type="tel" id="phone" name="phone" placeholder="+7 (999) 123-45-67"
-                           value="<?= htmlspecialchars($form_data['phone'] ?? $user_data['phone'] ?? '') ?>"
+                           value="<?= h($form_data['phone'] ?? $user_data['phone'] ?? '') ?>"
                            class="<?= isset($errors['phone']) ? 'error-field' : '' ?>">
                     <?php if (isset($errors['phone'])): ?>
-                        <small class="error-hint">❌ <?= $errors['phone'] ?></small>
+                        <small class="error-hint">❌ <?= h($errors['phone']) ?></small>
                     <?php else: ?>
                         <small class="hint">Допустимы: цифры, +, пробелы, скобки, дефис</small>
                     <?php endif; ?>
@@ -71,10 +74,10 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
                 <div class="form-group">
                     <label for="birth">Дата рождения</label>
                     <input type="date" id="birth" name="birth"
-                           value="<?= htmlspecialchars($form_data['birth'] ?? $user_data['birth_date'] ?? '') ?>"
+                           value="<?= h($form_data['birth'] ?? $user_data['birth_date'] ?? '') ?>"
                            class="<?= isset($errors['birth']) ? 'error-field' : '' ?>">
                     <?php if (isset($errors['birth'])): ?>
-                        <small class="error-hint">❌ <?= $errors['birth'] ?></small>
+                        <small class="error-hint">❌ <?= h($errors['birth']) ?></small>
                     <?php endif; ?>
                 </div>
             </div>
@@ -102,7 +105,7 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
                     </label>
                 </div>
                 <?php if (isset($errors['gender'])): ?>
-                    <small class="error-hint">❌ <?= $errors['gender'] ?></small>
+                    <small class="error-hint">❌ <?= h($errors['gender']) ?></small>
                 <?php endif; ?>
             </div>
             
@@ -119,21 +122,21 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
                     
                     foreach ($all_languages as $lang): 
                     ?>
-                        <option value="<?= $lang['id'] ?>" 
+                        <option value="<?= h($lang['id']) ?>" 
                             <?= in_array($lang['id'], $selected_langs) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($lang['name']) ?>
+                            <?= h($lang['name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <small class="hint">Зажмите Ctrl/Cmd для выбора нескольких</small>
                 <?php if (isset($errors['langs'])): ?>
-                    <small class="error-hint">❌ <?= $errors['langs'] ?></small>
+                    <small class="error-hint">❌ <?= h($errors['langs']) ?></small>
                 <?php endif; ?>
             </div>
             
             <div class="form-group">
                 <label for="bio">Биография</label>
-                <textarea id="bio" name="bio" rows="3" placeholder="Расскажите о себе..."><?= htmlspecialchars($form_data['bio'] ?? $user_data['bio'] ?? '') ?></textarea>
+                <textarea id="bio" name="bio" rows="3" placeholder="Расскажите о себе..."><?= h($form_data['bio'] ?? $user_data['bio'] ?? '') ?></textarea>
             </div>
             
             <?php if (!$is_edit): ?>
@@ -144,7 +147,7 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
                 <label for="contract">С контрактом ознакомлен(а) *</label>
             </div>
             <?php if (isset($errors['contract'])): ?>
-                <small class="error-hint" style="display: block; margin-top: -10px; margin-bottom: 10px;">❌ <?= $errors['contract'] ?></small>
+                <small class="error-hint" style="display: block; margin-top: -10px; margin-bottom: 10px;">❌ <?= h($errors['contract']) ?></small>
             <?php endif; ?>
             
             <div class="checkbox-group">
@@ -154,18 +157,16 @@ $title_prefix = $is_edit ? 'Редактирование' : '📋 Анкета';
                 <label for="consent">Я согласен на обработку персональных данных *</label>
             </div>
             <?php if (isset($errors['consent'])): ?>
-                <small class="error-hint" style="display: block; margin-top: -10px; margin-bottom: 10px;">❌ <?= $errors['consent'] ?></small>
+                <small class="error-hint" style="display: block; margin-top: -10px; margin-bottom: 10px;">❌ <?= h($errors['consent']) ?></small>
             <?php endif; ?>
             <?php endif; ?>
             
-            <button type="submit" class="btn-submit"><?= $button_text ?></button>
+            <button type="submit" class="btn-submit"><?= h($button_text) ?></button>
         </form>
         
         <?php if (!$is_edit): ?>
         <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 2px dashed #e2e8f0;">
             <p>Уже есть логин и пароль? <a href="login.php" style="color: #38a169; font-weight: 600; text-decoration: none;">Войти в личный кабинет</a></p>
-             <p style="margin-top: 15px; font-size: 0.8rem;">
-                <a href="admin.php" style="color: #a0aec0; text-decoration: none;">Панель администратора</a>
         </div>
         <?php endif; ?>
     </div>
